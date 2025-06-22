@@ -32,9 +32,9 @@ const HomeScreen = () => {
       }
 
       if (sortBy === 'impact') {
-        query = query.order('impact_score', { ascending: false, nullsLast: true });
+        query = query.order('impact_score', { ascending: false, nullsFirst: false });
       } else if (sortBy === 'date') {
-        query = query.order('published_date', { ascending: false, nullsLast: true });
+        query = query.order('published_date', { ascending: false, nullsFirst: false });
       } else if (sortBy === 'trending') {
         query = query.order('created_at', { ascending: false });
       }
