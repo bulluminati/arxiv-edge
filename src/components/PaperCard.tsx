@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,10 +11,12 @@ import {
   Bell,
   StickyNote,
   ExternalLink,
-  Zap
+  Zap,
+  Factory
 } from 'lucide-react';
 import ImpactMeter from './ImpactMeter';
 import PaperModal from './PaperModal';
+import { getGICSSector, mapToGICSSector } from '@/utils/gicsUtils';
 
 interface PaperCardProps {
   paper: any;
@@ -45,6 +46,10 @@ const PaperCard: React.FC<PaperCardProps> = ({ paper }) => {
 
   const affectedCompanies = paper.affected_public_companies || [];
   const impactScore = paper.impact_score || 0;
+  
+  // Get GICS sector information for affected industry
+  const gicsSector = getGICSSector(paper.market_sector || '');
+  const affectedIndustry = mapToGICSSector(paper.market_sector || '');
 
   return (
     <>
@@ -84,6 +89,26 @@ const PaperCard: React.FC<PaperCardProps> = ({ paper }) => {
           <p className="text-gray-300 text-xs leading-relaxed mb-3 line-clamp-2">
             {paper.abstract || 'No abstract available'}
           </p>
+
+          {/* Affected Industry - GICS Sector */}
+          {affectedIndustry && (
+            <div className="mb-3">
+              <div className="flex items-center space-x-1 mb-1">
+                <Factory className="h-3 w-3 text-gray-400" />
+                <span className="text-xs text-gray-400">Affected Industry:</span>
+              </div>
+              <Badge 
+                variant="outline" 
+                className={`text-xs ${
+                  gicsSector 
+                    ? `${gicsSector.color} ${gicsSector.textColor} ${gicsSector.borderColor}` 
+                    : 'bg-gray-500/10 text-gray-400 border-gray-400/30'
+                }`}
+              >
+                {gicsSector?.icon} {affectedIndustry}
+              </Badge>
+            </div>
+          )}
 
           {/* Affected Companies */}
           {affectedCompanies.length > 0 && (
