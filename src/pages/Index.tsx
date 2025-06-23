@@ -1,91 +1,100 @@
-
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Bell, User, BookOpen, TrendingUp } from 'lucide-react';
-import HomeScreen from '@/components/HomeScreen';
-import DiscoverScreen from '@/components/DiscoverScreen';
-import NotificationsScreen from '@/components/NotificationsScreen';
-import ProfileScreen from '@/components/ProfileScreen';
-import NavigationBar from '@/components/NavigationBar';
+import { useState } from "react";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Home, User, LogOut, Search, Bell } from "lucide-react";
+import HomeScreen from "@/components/HomeScreen";
+import ProfileScreen from "@/components/ProfileScreen";
+import DiscoverScreen from "@/components/DiscoverScreen";
+import NotificationsScreen from "@/components/NotificationsScreen";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState("home");
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
-      <NavigationBar />
-      
-      <div className="pb-20"> {/* Space for bottom navigation */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-          <TabsContent value="home" className="m-0 h-full">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white">
+      <header className="fixed top-0 left-0 right-0 bg-slate-900/50 backdrop-blur-lg border-b border-white/10 z-10">
+        <div className="container mx-auto p-4 flex justify-between items-center">
+          <h1 className="text-xl font-bold">arXiv Intelligence</h1>
+          <Button variant="ghost" onClick={handleLogout} className="text-gray-400 hover:text-white">
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
+        </div>
+      </header>
+
+      <main className="container mx-auto pt-24 pb-24 px-4">
+        <Tabs value={activeTab} className="w-full">
+          <TabsContent value="home">
             <HomeScreen />
           </TabsContent>
-          
-          <TabsContent value="discover" className="m-0 h-full">
+          <TabsContent value="discover">
             <DiscoverScreen />
           </TabsContent>
-          
-          <TabsContent value="notifications" className="m-0 h-full">
+          <TabsContent value="notifications">
             <NotificationsScreen />
           </TabsContent>
-          
-          <TabsContent value="profile" className="m-0 h-full">
+          <TabsContent value="profile">
             <ProfileScreen />
           </TabsContent>
         </Tabs>
-      </div>
-
-      {/* Bottom Navigation */}
+      </main>
+      
       <div className="fixed bottom-0 left-0 right-0 bg-white/10 backdrop-blur-xl border-t border-white/20">
-        <div className="flex items-center justify-around px-4 py-3">
-          <button
-            onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-all ${
-              activeTab === 'home' 
-                ? 'bg-blue-500/20 text-blue-400' 
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <BookOpen className="h-5 w-5" />
-            <span className="text-xs font-medium">Papers</span>
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('discover')}
-            className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-all ${
-              activeTab === 'discover' 
-                ? 'bg-purple-500/20 text-purple-400' 
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Search className="h-5 w-5" />
-            <span className="text-xs font-medium">Discover</span>
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('notifications')}
-            className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-all relative ${
-              activeTab === 'notifications' 
-                ? 'bg-green-500/20 text-green-400' 
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Bell className="h-5 w-5" />
-            <span className="text-xs font-medium">Alerts</span>
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-all ${
-              activeTab === 'profile' 
-                ? 'bg-orange-500/20 text-orange-400' 
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <User className="h-5 w-5" />
-            <span className="text-xs font-medium">Profile</span>
-          </button>
+        <div className="container mx-auto max-w-md">
+            <div className="flex items-center justify-around px-4 py-2">
+            <button
+                onClick={() => setActiveTab('home')}
+                className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-all w-full ${
+                activeTab === 'home' 
+                    ? 'bg-blue-500/20 text-blue-400' 
+                    : 'text-gray-400 hover:bg-white/5'
+                }`}
+            >
+                <Home className="h-5 w-5" />
+                <span className="text-xs font-medium">Home</span>
+            </button>
+
+            <button
+                onClick={() => setActiveTab('discover')}
+                className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-all w-full ${
+                activeTab === 'discover'
+                    ? 'bg-purple-500/20 text-purple-400'
+                    : 'text-gray-400 hover:bg-white/5'
+                }`}
+            >
+                <Search className="h-5 w-5" />
+                <span className="text-xs font-medium">Discover</span>
+            </button>
+
+            <button
+                onClick={() => setActiveTab('notifications')}
+                className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-all w-full relative ${
+                activeTab === 'notifications'
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'text-gray-400 hover:bg-white/5'
+                }`}
+            >
+                <Bell className="h-5 w-5" />
+                <span className="text-xs font-medium">Alerts</span>
+            </button>
+            
+            <button
+                onClick={() => setActiveTab('profile')}
+                className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-all w-full ${
+                activeTab === 'profile' 
+                    ? 'bg-orange-500/20 text-orange-400' 
+                    : 'text-gray-400 hover:bg-white/5'
+                }`}
+            >
+                <User className="h-5 w-5" />
+                <span className="text-xs font-medium">Profile</span>
+            </button>
+            </div>
         </div>
       </div>
     </div>

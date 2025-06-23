@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,16 +19,76 @@ import {
 import ImpactMeter from './ImpactMeter';
 import PaperModal from './PaperModal';
 import { getGICSSector, mapToGICSSector } from '@/utils/gicsUtils';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { User } from '@supabase/supabase-js';
 
 interface PaperCardProps {
   paper: any;
+  user?: User | null;
 }
 
-const PaperCard: React.FC<PaperCardProps> = ({ paper }) => {
+const PaperCard: React.FC<PaperCardProps> = ({ paper, user }) => {
+  const queryClient = useQueryClient();
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [hasReminder, setHasReminder] = useState(false);
   const [hasNote, setHasNote] = useState(false);
   const [showModal, setShowModal] = useState(false);
+
+  const { data: bookmark } = useQuery({
+    queryKey: ['bookmark', paper.id, user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from('bookmarked_papers')
+        .select('id')
+        .eq('paper_id', paper.id)
+        .eq('user_id', user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    setIsBookmarked(!!bookmark);
+  }, [bookmark]);
+
+  const bookmarkMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("User not logged in");
+
+      if (isBookmarked) {
+        // Delete bookmark
+        const { error } = await supabase
+          .from('bookmarked_papers')
+          .delete()
+          .match({ paper_id: paper.id, user_id: user.id });
+        if (error) throw error;
+      } else {
+        // Add bookmark
+        const { error } = await supabase
+          .from('bookmarked_papers')
+          .insert({ paper_id: paper.id, user_id: user.id });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookmark', paper.id, user?.id] });
+    },
+    onError: (error) => {
+      console.error("Bookmark error:", error.message);
+    }
+  });
+
+  const handleBookmarkClick = () => {
+    if (!user) {
+      // Or redirect to login
+      alert("Please log in to bookmark papers.");
+      return;
+    }
+    bookmarkMutation.mutate();
+  };
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Unknown';
@@ -191,7 +251,8 @@ const PaperCard: React.FC<PaperCardProps> = ({ paper }) => {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setIsBookmarked(!isBookmarked)}
+                onClick={handleBookmarkClick}
+                disabled={bookmarkMutation.isPending}
                 className={`p-2 h-8 w-8 ${
                   isBookmarked ? 'text-yellow-400 bg-yellow-400/20' : 'text-gray-400 hover:text-white'
                 }`}

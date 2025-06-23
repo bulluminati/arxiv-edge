@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -14,36 +13,106 @@ import {
   Brain,
   Zap,
   Plus,
-  X
+  X,
+  Search,
+  BookOpen,
 } from 'lucide-react';
+import { GICS_SECTORS } from '@/utils/gicsUtils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
+import PaperCard from './PaperCard';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { User as AuthUser } from '@supabase/supabase-js';
 
 const ProfileScreen = () => {
-  const [trackedSectors, setTrackedSectors] = useState([
-    'Quantum Computing',
-    'Biotechnology',
-    'AI & Machine Learning',
-    'Energy Storage'
-  ]);
+  const queryClient = useQueryClient();
   
-  const [trackedCompanies, setTrackedCompanies] = useState([
-    'NVDA', 'TSLA', 'MRNA', 'IBM', 'GOOGL'
-  ]);
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return data.user;
+    }
+  });
 
-  const [newSector, setNewSector] = useState('');
-  const [newCompany, setNewCompany] = useState('');
+  const { data: portfolio, isLoading: isLoadingPortfolio } = useQuery({
+    queryKey: ['userPortfolio', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('user_portfolios')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('portfolio_type', 'research')
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116: "exact-one" violation (0 rows)
+        throw error;
+      }
+      return data;
+    },
+    enabled: !!user,
+  });
 
-  const availableSectors = [
-    'Quantum Computing',
-    'Biotechnology',
-    'AI & Machine Learning',
-    'Nanotechnology',
-    'Renewable Energy',
-    'Aerospace',
-    'Robotics',
-    'Materials Science',
-    'Telecommunications',
-    'Pharmaceuticals'
-  ];
+  const upsertPortfolioMutation = useMutation({
+    mutationFn: async (sectorsToUpdate?: string[]) => {
+      if (!user?.id) return;
+
+      const updates = {
+        user_id: user.id,
+        portfolio_type: 'research',
+        name: `${user.email?.split('@')[0]}'s Research`,
+        tracked_sectors: sectorsToUpdate || trackedSectors,
+        updated_at: new Date().toISOString(),
+      };
+
+      // If portfolio exists, update it. Otherwise, create it.
+      const { error } = await supabase
+        .from('user_portfolios')
+        .upsert(portfolio ? { ...updates, id: portfolio.id } : updates, {
+          onConflict: 'id',
+        });
+        
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userPortfolio', user?.id] });
+    },
+  });
+
+  const [trackedSectors, setTrackedSectors] = useState<string[]>([]);
+  
+  useEffect(() => {
+    if (user && !portfolio && !isLoadingPortfolio) {
+      // User is loaded, but has no portfolio, and we are not currently loading.
+      // Create a default portfolio for them.
+      upsertPortfolioMutation.mutate([
+        'Information Technology',
+        'Health Care',
+        'Financials'
+      ]);
+    } else if (portfolio?.tracked_sectors) {
+      // Portfolio exists, sync its sectors to the local state.
+      setTrackedSectors(portfolio.tracked_sectors);
+    }
+  }, [user, portfolio, isLoadingPortfolio, upsertPortfolioMutation]);
+
+  useEffect(() => {
+    if (portfolio && JSON.stringify(trackedSectors) !== JSON.stringify(portfolio.tracked_sectors)) {
+      upsertPortfolioMutation.mutate(trackedSectors);
+    }
+  }, [trackedSectors, portfolio, upsertPortfolioMutation]);
+
+  const [sectorSearch, setSectorSearch] = useState('');
+
+  const filteredGicsSectors = useMemo(() => {
+    if (!sectorSearch) return GICS_SECTORS;
+    return GICS_SECTORS.filter(sector =>
+      sector.name.toLowerCase().includes(sectorSearch.toLowerCase())
+    );
+  }, [sectorSearch]);
 
   const userStats = {
     papersAnalyzed: 1247,
@@ -52,27 +121,20 @@ const ProfileScreen = () => {
     avgImpactScore: 6.8
   };
 
-  const addSector = () => {
-    if (newSector && !trackedSectors.includes(newSector)) {
-      setTrackedSectors([...trackedSectors, newSector]);
-      setNewSector('');
+  const addSector = (sectorName: string) => {
+    if (sectorName && !trackedSectors.includes(sectorName)) {
+      setTrackedSectors(prevSectors => [...prevSectors, sectorName]);
     }
+    setSectorSearch('');
   };
 
   const removeSector = (sector: string) => {
     setTrackedSectors(trackedSectors.filter(s => s !== sector));
   };
 
-  const addCompany = () => {
-    if (newCompany && !trackedCompanies.includes(newCompany.toUpperCase())) {
-      setTrackedCompanies([...trackedCompanies, newCompany.toUpperCase()]);
-      setNewCompany('');
-    }
-  };
-
-  const removeCompany = (company: string) => {
-    setTrackedCompanies(trackedCompanies.filter(c => c !== company));
-  };
+  if (isLoadingPortfolio) {
+    return <div className="min-h-screen text-white p-4">Loading profile...</div>;
+  }
 
   return (
     <div className="min-h-screen text-white p-4">
@@ -149,123 +211,119 @@ const ProfileScreen = () => {
             ))}
           </div>
           
-          <div className="flex space-x-2">
-            <Input
-              placeholder="Add new sector..."
-              value={newSector}
-              onChange={(e) => setNewSector(e.target.value)}
-              className="flex-1 bg-white/10 border-white/20 text-white placeholder-gray-400"
-              list="sectors"
-            />
-            <datalist id="sectors">
-              {availableSectors.map((sector) => (
-                <option key={sector} value={sector} />
-              ))}
-            </datalist>
-            <Button onClick={addSector} size="sm" className="bg-blue-500/20 text-blue-400 border border-blue-400/30">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full justify-start bg-white/10 border-white/20 text-white placeholder-gray-400">
+                <Plus className="mr-2 h-4 w-4" />
+                Add new sector...
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="p-0" align="start">
+              <Command>
+                <CommandInput 
+                  placeholder="Search sectors..." 
+                  value={sectorSearch} 
+                  onValueChange={setSectorSearch} 
+                />
+                <CommandList>
+                  <CommandEmpty>No sectors found.</CommandEmpty>
+                  <CommandGroup>
+                    {filteredGicsSectors.map((sector) => (
+                      <CommandItem
+                        key={sector.name}
+                        onSelect={() => addSector(sector.name)}
+                        className="flex items-center space-x-2"
+                      >
+                        {sector.icon}
+                        <span>{sector.name}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
-      {/* Tracked Companies */}
+      {/* Alert Preferences */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-white mb-3 flex items-center">
-          <TrendingUp className="h-5 w-5 mr-2 text-green-400" />
-          Tracked Companies
-        </h2>
-        
-        <div className="bg-white/5 backdrop-blur-xl rounded-lg p-4 border border-white/10">
-          <div className="flex flex-wrap gap-2 mb-3">
-            {trackedCompanies.map((company) => (
-              <Badge
-                key={company}
-                className="bg-green-500/20 text-green-400 border-green-400/30 flex items-center space-x-1"
-              >
-                <span>{company}</span>
-                <button
-                  onClick={() => removeCompany(company)}
-                  className="ml-1 hover:text-red-400"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-          
-          <div className="flex space-x-2">
-            <Input
-              placeholder="Add ticker symbol (e.g., AAPL)..."
-              value={newCompany}
-              onChange={(e) => setNewCompany(e.target.value.toUpperCase())}
-              className="flex-1 bg-white/10 border-white/20 text-white placeholder-gray-400"
-            />
-            <Button onClick={addCompany} size="sm" className="bg-green-500/20 text-green-400 border border-green-400/30">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Notification Preferences */}
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-white mb-3 flex items-center">
-          <Bell className="h-5 w-5 mr-2 text-orange-400" />
+          <Bell className="h-5 w-5 mr-2 text-red-400" />
           Alert Preferences
         </h2>
         
         <div className="bg-white/5 backdrop-blur-xl rounded-lg p-4 border border-white/10 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-white">High Impact Alerts</div>
-              <div className="text-xs text-gray-400">Papers with impact score ≥ 8.0</div>
+              <h4 className="font-medium text-white">High Impact Alerts</h4>
+              <p className="text-xs text-gray-400">Papers with impact score ≥ 8.0</p>
             </div>
-            <Switch checked={true} />
+            <Switch id="high-impact-alerts" defaultChecked />
           </div>
-          
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-white">Sector Breakthroughs</div>
-              <div className="text-xs text-gray-400">Major discoveries in tracked sectors</div>
+              <h4 className="font-medium text-white">Sector Breakthroughs</h4>
+              <p className="text-xs text-gray-400">Major discoveries in tracked sectors</p>
             </div>
-            <Switch checked={true} />
+            <Switch id="sector-breakthroughs" defaultChecked />
           </div>
-          
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-white">Company Impact</div>
-              <div className="text-xs text-gray-400">Research affecting tracked companies</div>
+              <h4 className="font-medium text-white">Daily Digest</h4>
+              <p className="text-xs text-gray-400">Summary of new papers and insights</p>
             </div>
-            <Switch checked={false} />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium text-white">Daily Digest</div>
-              <div className="text-xs text-gray-400">Summary of new papers and insights</div>
-            </div>
-            <Switch checked={true} />
+            <Switch id="daily-digest" />
           </div>
         </div>
       </div>
+      
+      {/* Bookmarked Papers */}
+      <div className="mt-6">
+        <h2 className="text-lg font-semibold text-white mb-3 flex items-center">
+          <Bookmark className="h-5 w-5 mr-2 text-yellow-400" />
+          Bookmarked Papers
+        </h2>
+        <div className="space-y-4">
+          {/* This would be populated with real data. Using placeholders. */}
+           <PaperCard paper={{
+            id: 'placeholder-2',
+            title: 'Breakthrough in Quantum-Resistant Cryptography',
+            abstract: 'A new cryptographic algorithm shows resilience against quantum computing attacks, with major implications for cybersecurity.',
+            published_date: new Date(Date.now() - 86400000 * 2).toISOString(),
+            impact_score: 9.1,
+            market_sector: 'Cybersecurity',
+            affected_public_companies: [{ ticker: 'CRWD' }, { ticker: 'PANW' }],
+            key_insights: ['Establishes a new standard for post-quantum security.'],
+            commercial_viability: 'Very High',
+            timeline_to_market: 24,
+            patent_potential: 'High'
+          }} />
+           <PaperCard paper={{
+            id: 'placeholder-3',
+            title: 'Novel Gene-Editing Technique Increases Precision by 99%',
+            abstract: 'The study presents a new CRISPR-based technique that dramatically reduces off-target mutations, a major step for gene therapy.',
+            published_date: new Date(Date.now() - 86400000 * 5).toISOString(),
+            impact_score: 8.8,
+            market_sector: 'Biotechnology',
+            affected_public_companies: [{ ticker: 'CRSP' }, { ticker: 'EDIT' }],
+            key_insights: ['Reduces risk of unintended genetic alterations in therapeutic applications.'],
+            commercial_viability: 'High',
+            timeline_to_market: 36,
+            patent_potential: 'Medium'
+          }} />
+        </div>
+      </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <Button
-          variant="outline"
-          className="h-16 flex flex-col items-center justify-center space-y-1 bg-white/5 border-white/10 hover:border-purple-400/50"
-        >
-          <Zap className="h-5 w-5 text-purple-400" />
-          <span className="text-xs">Export Data</span>
+      {/* Actions */}
+      <div className="mt-8 pt-6 border-t border-white/10 grid grid-cols-2 gap-4">
+        <Button variant="outline" className="bg-white/5 border-white/10">
+          <Zap className="h-4 w-4 mr-2" />
+          Export Data
         </Button>
-
-        <Button
-          variant="outline"
-          className="h-16 flex flex-col items-center justify-center space-y-1 bg-white/5 border-white/10 hover:border-red-400/50"
-        >
-          <Settings className="h-5 w-5 text-red-400" />
-          <span className="text-xs">Advanced Settings</span>
+        <Button variant="outline" className="bg-white/5 border-white/10">
+          <Settings className="h-4 w-4 mr-2" />
+          Advanced Settings
         </Button>
       </div>
     </div>
