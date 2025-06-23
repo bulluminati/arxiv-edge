@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,6 +7,7 @@ import PaperCard from './PaperCard';
 import SectorFilter from './SectorFilter';
 import LoadingSpinner from './LoadingSpinner';
 import ImpactMeter from './ImpactMeter';
+import { GICS_SECTORS } from '@/utils/gicsUtils';
 
 const HomeScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,15 +42,6 @@ const HomeScreen = () => {
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
-    },
-  });
-
-  const { data: sectors } = useQuery({
-    queryKey: ['sectors'],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('distinct_sectors');
-      if (error) throw error;
-      return data?.map((s: { market_sector: string }) => s.market_sector) || [];
     },
   });
 
@@ -126,7 +117,7 @@ const HomeScreen = () => {
 
         <div className="flex space-x-3 overflow-x-auto pb-2">
           <SectorFilter
-            sectors={sectors || []}
+            sectors={GICS_SECTORS.map(s => s.name)}
             selectedSector={selectedSector}
             onSectorChange={setSelectedSector}
           />
