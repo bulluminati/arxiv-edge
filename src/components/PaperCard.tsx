@@ -50,6 +50,13 @@ const PaperCard: React.FC<PaperCardProps> = ({ paper }) => {
   // Get GICS sector information for affected industry
   const gicsSector = getGICSSector(paper.market_sector || '');
   const affectedIndustry = mapToGICSSector(paper.market_sector || '');
+  
+  // Try to identify specific industry group within the sector
+  const specificIndustryGroup = gicsSector && paper.market_sector ? 
+    gicsSector.industryGroups.find(group =>
+      paper.market_sector.toLowerCase().includes(group.toLowerCase()) ||
+      group.toLowerCase().includes(paper.market_sector.toLowerCase())
+    ) : null;
 
   return (
     <>
@@ -97,16 +104,27 @@ const PaperCard: React.FC<PaperCardProps> = ({ paper }) => {
                 <Factory className="h-3 w-3 text-gray-400" />
                 <span className="text-xs text-gray-400">Affected Industry:</span>
               </div>
-              <Badge 
-                variant="outline" 
-                className={`text-xs ${
-                  gicsSector 
-                    ? `${gicsSector.color} ${gicsSector.textColor} ${gicsSector.borderColor}` 
-                    : 'bg-gray-500/10 text-gray-400 border-gray-400/30'
-                }`}
-              >
-                {gicsSector?.icon} {affectedIndustry}
-              </Badge>
+              <div className="space-y-1">
+                <Badge 
+                  variant="outline" 
+                  className={`text-xs ${
+                    gicsSector 
+                      ? `${gicsSector.color} ${gicsSector.textColor} ${gicsSector.borderColor}` 
+                      : 'bg-gray-500/10 text-gray-400 border-gray-400/30'
+                  }`}
+                  title={gicsSector?.description}
+                >
+                  {gicsSector?.icon} {affectedIndustry}
+                </Badge>
+                {specificIndustryGroup && (
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs bg-white/5 text-gray-300 border-gray-400/20 ml-2"
+                  >
+                    {specificIndustryGroup}
+                  </Badge>
+                )}
+              </div>
             </div>
           )}
 

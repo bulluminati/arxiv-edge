@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { GICS_SECTORS, getGICSSector } from '@/utils/gicsUtils';
 
 interface SectorFilterProps {
   sectors: string[];
@@ -14,23 +14,8 @@ const SectorFilter: React.FC<SectorFilterProps> = ({
   selectedSector, 
   onSectorChange 
 }) => {
-  // GICS 11 sectors with color coding
-  const gicsSectors = [
-    { name: 'Energy', color: 'bg-red-500/20 text-red-400 border-red-400/30', icon: '⚡' },
-    { name: 'Materials', color: 'bg-orange-500/20 text-orange-400 border-orange-400/30', icon: '🧪' },
-    { name: 'Industrials', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-400/30', icon: '🏭' },
-    { name: 'Consumer Discretionary', color: 'bg-lime-500/20 text-lime-400 border-lime-400/30', icon: '🛍️' },
-    { name: 'Consumer Staples', color: 'bg-green-500/20 text-green-400 border-green-400/30', icon: '🛒' },
-    { name: 'Health Care', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-400/30', icon: '🏥' },
-    { name: 'Financials', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-400/30', icon: '💰' },
-    { name: 'Information Technology', color: 'bg-blue-500/20 text-blue-400 border-blue-400/30', icon: '💻' },
-    { name: 'Communication Services', color: 'bg-indigo-500/20 text-indigo-400 border-indigo-400/30', icon: '📡' },
-    { name: 'Utilities', color: 'bg-purple-500/20 text-purple-400 border-purple-400/30', icon: '⚡' },
-    { name: 'Real Estate', color: 'bg-pink-500/20 text-pink-400 border-pink-400/30', icon: '🏢' }
-  ];
-
   // Map sectors to GICS with fallback for existing data
-  const availableGicsSectors = gicsSectors.filter(gics => 
+  const availableGicsSectors = GICS_SECTORS.filter(gics => 
     sectors.some(sector => 
       sector.toLowerCase().includes(gics.name.toLowerCase()) || 
       gics.name.toLowerCase().includes(sector.toLowerCase())
@@ -39,7 +24,7 @@ const SectorFilter: React.FC<SectorFilterProps> = ({
 
   // Add any unmapped sectors
   const unmappedSectors = sectors.filter(sector => 
-    !gicsSectors.some(gics => 
+    !GICS_SECTORS.some(gics => 
       sector.toLowerCase().includes(gics.name.toLowerCase()) || 
       gics.name.toLowerCase().includes(sector.toLowerCase())
     )
@@ -66,10 +51,11 @@ const SectorFilter: React.FC<SectorFilterProps> = ({
           size="sm"
           variant={selectedSector === gics.name ? "default" : "outline"}
           onClick={() => onSectorChange(gics.name)}
-          className={`whitespace-nowrap ${
+          title={gics.description}
+          className={`whitespace-nowrap transition-all duration-200 ${
             selectedSector === gics.name
-              ? gics.color
-              : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'
+              ? `${gics.color} ${gics.textColor} ${gics.borderColor}`
+              : 'bg-white/5 text-gray-400 border-white/10 hover:text-white hover:bg-white/10'
           }`}
         >
           <span className="mr-1">{gics.icon}</span>
