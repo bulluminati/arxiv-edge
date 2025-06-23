@@ -12,7 +12,9 @@ import {
   StickyNote,
   ExternalLink,
   Zap,
-  Factory
+  Factory,
+  Clock,
+  ShieldCheck,
 } from 'lucide-react';
 import ImpactMeter from './ImpactMeter';
 import PaperModal from './PaperModal';
@@ -167,8 +169,24 @@ const PaperCard: React.FC<PaperCardProps> = ({ paper }) => {
             </div>
           )}
 
+          {/* Key Metrics */}
+          <div className="grid grid-cols-3 gap-2 text-xs text-gray-400 mt-3 pt-3 border-t border-white/10">
+            <div className="flex items-center space-x-1" title="Commercial Viability">
+              <Zap className="h-3.5 w-3.5 text-purple-400" />
+              <span className="font-medium truncate">{paper.commercial_viability || 'N/A'}</span>
+            </div>
+            <div className="flex items-center space-x-1" title="Time to Market">
+              <Clock className="h-3.5 w-3.5 text-blue-400" />
+              <span className="font-medium">{paper.timeline_to_market ? `${paper.timeline_to_market} mo` : 'N/A'}</span>
+            </div>
+            <div className="flex items-center space-x-1" title="Patent Potential">
+              <ShieldCheck className="h-3.5 w-3.5 text-green-400" />
+              <span className="font-medium">{paper.patent_potential || 'N/A'}</span>
+            </div>
+          </div>
+
           {/* Actions */}
-          <div className="flex items-center justify-between pt-3 border-t border-white/10">
+          <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/10">
             <div className="flex items-center space-x-2">
               <Button
                 size="sm"
