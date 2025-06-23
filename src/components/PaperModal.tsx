@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -22,7 +21,7 @@ import {
   Save
 } from 'lucide-react';
 import ImpactMeter from './ImpactMeter';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PaperModalProps {
   paper: any;
@@ -34,7 +33,7 @@ const PaperModal: React.FC<PaperModalProps> = ({ paper, onClose }) => {
   const [userNote, setUserNote] = useState('');
   const [reminderDate, setReminderDate] = useState('');
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Unknown';
