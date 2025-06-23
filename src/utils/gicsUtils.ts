@@ -1,4 +1,3 @@
-
 export interface GICSSector {
   name: string;
   color: string;
@@ -193,7 +192,7 @@ export function mapToGICSSector(sectorName: string): string {
   return gics ? gics.name : sectorName;
 }
 
-export function getIndustryGroupForSector(sics: GICSSector, industryName: string): string | null {
+export function getIndustryGroupForSector(gics: GICSSector, industryName: string): string | null {
   return gics.industryGroups.find(group =>
     industryName.toLowerCase().includes(group.toLowerCase()) ||
     group.toLowerCase().includes(industryName.toLowerCase())
