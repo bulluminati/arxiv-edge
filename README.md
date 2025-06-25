@@ -1,73 +1,156 @@
-# Welcome to your Lovable project
+# arXiv Intelligence (arxiv-edge)
 
-## Project info
+A modern research intelligence platform for discovering, analyzing, and tracking the impact of cutting-edge arXiv papers on real-world industries, powered by AI and GICS sector mapping.
 
-**URL**: https://lovable.dev/projects/9bd6016f-beae-48be-a263-d1488146fce0
+---
 
-## How can I edit this code?
+## 🚀 Features
 
-There are several ways of editing your application.
+- **AI-powered research paper analysis** with impact scoring
+- **GICS sector tracking**: users select sectors to follow (no company tracking)
+- **Personalized profile**: tracked sectors, research stats, and bookmarks
+- **Bookmarking**: save papers to your profile (persisted in Supabase)
+- **Authentication**: GitHub & Google login via Supabase Auth UI
+- **Alerts & notifications**: see high-impact discoveries and sector updates
+- **Modern UI**: built with React, Vite, shadcn-ui, and Tailwind CSS
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9bd6016f-beae-48be-a263-d1488146fce0) and start prompting.
+## 🛠️ Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React + Vite + TypeScript
+- **UI**: shadcn-ui, Tailwind CSS, Lucide Icons
+- **State/Data**: React Query, Supabase (Postgres, Auth)
+- **Auth**: Supabase Auth UI (GitHub, Google)
+- **Database**: Supabase Postgres (see schema below)
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 📦 Project Structure
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+├── src/
+│   ├── components/         # Main UI components (HomeScreen, ProfileScreen, etc.)
+│   ├── pages/              # Route-level pages (Index, AuthPage, NotFound)
+│   ├── hooks/              # Custom React hooks
+│   ├── integrations/       # Supabase client & types
+│   ├── lib/                # Utility functions
+│   ├── utils/              # GICS sector utilities
+│   └── main.tsx            # App entry point
+├── supabase/               # Supabase config & migrations
+│   └── migrations/         # SQL migrations (bookmarked_papers, etc.)
+├── public/                 # Static assets
+├── package.json            # Dependencies & scripts
+├── vite.config.ts          # Vite config
+└── README.md               # This file
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## ⚡ Quick Start
 
-**Use GitHub Codespaces**
+1. **Clone the repo:**
+   ```sh
+   git clone <YOUR_GIT_URL>
+   cd arxiv-edge
+   ```
+2. **Install dependencies:**
+   ```sh
+   npm install
+   ```
+3. **Start the dev server:**
+   ```sh
+   npm run dev
+   ```
+4. **(Optional) Set up Supabase:**
+   - Copy your Supabase project URL and anon key into `src/integrations/supabase/client.ts` if you fork.
+   - Run migrations in `supabase/migrations/` if you use your own Supabase instance.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## 🔑 Authentication
 
-This project is built with:
+- Uses [Supabase Auth UI](https://supabase.com/docs/guides/auth/auth-helpers/auth-ui) for login/signup
+- Providers: **GitHub** and **Google**
+- Auth state is required for bookmarking and profile features
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## 🗂️ GICS Sectors
 
-Simply open [Lovable](https://lovable.dev/projects/9bd6016f-beae-48be-a263-d1488146fce0) and click on Share -> Publish.
+- Users track **GICS sectors** (not companies)
+- Sectors are defined in [`src/utils/gicsUtils.ts`](src/utils/gicsUtils.ts)
+- Profile and home screens use these sectors for filtering and personalization
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+## 🗄️ Database Schema (Supabase)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Key tables:
+- `user_portfolios`: stores tracked sectors per user (`portfolio_type = 'research'`)
+- `bookmarked_papers`: stores user-paper bookmarks (see migration below)
+- `research_papers`: main paper data (AI-analyzed)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+**Bookmarked Papers Table Migration:**
+```sql
+create table public.bookmarked_papers (
+  id bigint generated by default as identity,
+  user_id uuid not null,
+  paper_id bigint not null,
+  created_at timestamp with time zone not null default now(),
+  constraint bookmarked_papers_pkey primary key (id),
+  constraint bookmarked_papers_user_id_fkey foreign key (user_id) references auth.users (id) on delete cascade,
+  constraint bookmarked_papers_paper_id_fkey foreign key (paper_id) references public.research_papers (id) on delete cascade,
+  constraint bookmarked_papers_user_id_paper_id_key unique (user_id, paper_id)
+);
+
+alter table public.bookmarked_papers enable row level security;
+
+create policy "Users can view their own bookmarks"
+on public.bookmarked_papers for select
+using (auth.uid() = user_id);
+
+create policy "Users can insert their own bookmarks"
+on public.bookmarked_papers for insert
+with check (auth.uid() = user_id);
+
+create policy "Users can delete their own bookmarks"
+on public.bookmarked_papers for delete
+using (auth.uid() = user_id);
+```
+
+---
+
+## 🧑‍💻 Main Components
+
+- **HomeScreen**: Paper feed, sector filter, search, impact stats
+- **ProfileScreen**: Tracked sectors (GICS), research stats, bookmarks
+- **DiscoverScreen**: Trending topics, breakthroughs, search
+- **NotificationsScreen**: Alerts for high-impact research
+- **PaperCard/PaperModal**: Paper details, bookmarking, impact
+- **AuthPage**: Login/signup (Supabase Auth UI)
+
+---
+
+## 🏗️ Contributing
+
+1. Fork the repo and create a new branch
+2. Make your changes (see project structure above)
+3. Run `npm run lint` and test locally
+4. Commit and push, then open a PR
+
+---
+
+## 📚 Resources
+
+- [Supabase Docs](https://supabase.com/docs)
+- [GICS Sectors](https://www.msci.com/our-solutions/indexes/gics)
+- [shadcn/ui](https://ui.shadcn.com/)
+- [Vite](https://vitejs.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+
+---
+
+## 📝 License
+
+MIT (see LICENSE)
