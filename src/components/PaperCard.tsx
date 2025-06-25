@@ -12,7 +12,7 @@ import ImpactMeter from './ImpactMeter';
 import PaperModal from './PaperModal';
 import PaperActions from './paper/PaperActions';
 import PaperMetrics from './paper/PaperMetrics';
-import { getGICSSector, mapToGICSSector } from '@/utils/gicsUtils';
+import { getGICSSector, mapToGICSSector } from '@/utils/gicsSectorLookup';
 import { formatDate } from '@/utils/formatUtils';
 import { useBookmark } from '@/hooks/useBookmark';
 import { User } from '@supabase/supabase-js';

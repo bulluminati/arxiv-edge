@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { GICS_SECTORS, getGICSSector } from '@/utils/gicsUtils';
+import { GICS_SECTORS } from '@/data/gicsSectors';
 
 interface SectorFilterProps {
   sectors: string[];
