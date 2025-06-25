@@ -197,6 +197,77 @@ export type Database = {
           },
         ]
       }
+      arxiv_categories: {
+        Row: {
+          category_code: string
+          category_name: string
+          created_at: string | null
+          fetch_enabled: boolean | null
+          id: string
+          last_fetch_date: string | null
+          papers_per_day_avg: number | null
+          parent_category: string
+          priority_tier: number | null
+          processing_weight: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category_code: string
+          category_name: string
+          created_at?: string | null
+          fetch_enabled?: boolean | null
+          id?: string
+          last_fetch_date?: string | null
+          papers_per_day_avg?: number | null
+          parent_category: string
+          priority_tier?: number | null
+          processing_weight?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category_code?: string
+          category_name?: string
+          created_at?: string | null
+          fetch_enabled?: boolean | null
+          id?: string
+          last_fetch_date?: string | null
+          papers_per_day_avg?: number | null
+          parent_category?: string
+          priority_tier?: number | null
+          processing_weight?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      bookmarked_papers: {
+        Row: {
+          created_at: string
+          id: number
+          paper_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          paper_id: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          paper_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmarked_papers_paper_id_fkey"
+            columns: ["paper_id"]
+            isOneToOne: false
+            referencedRelation: "research_papers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidate_repos: {
         Row: {
           analysis_status: string | null
@@ -586,6 +657,39 @@ export type Database = {
         }
         Relationships: []
       }
+      processing_batches: {
+        Row: {
+          batch_type: string
+          categories_included: string[] | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          papers_count: number | null
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          batch_type: string
+          categories_included?: string[] | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          papers_count?: number | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          batch_type?: string
+          categories_included?: string[] | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          papers_count?: number | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       processing_queue: {
         Row: {
           abstract: string | null
@@ -597,6 +701,7 @@ export type Database = {
           agent5_output: Json | null
           analysis_metadata: Json | null
           analysis_mode: string | null
+          arxiv_category: string | null
           arxiv_id: string
           attempts: number | null
           authors: Json | null
@@ -608,9 +713,11 @@ export type Database = {
           created_at: string | null
           error_message: string | null
           id: string
+          intended_sector: string | null
           max_attempts: number | null
           paper_url: string | null
           priority: number | null
+          processing_batch_id: string | null
           processing_error: string | null
           processing_stage: string | null
           processing_time_seconds: number | null
@@ -621,6 +728,8 @@ export type Database = {
           successful_agents: number | null
           title: string | null
           updated_at: string | null
+          worker_assigned_at: string | null
+          worker_id: string | null
           workflow_metadata: Json | null
         }
         Insert: {
@@ -633,6 +742,7 @@ export type Database = {
           agent5_output?: Json | null
           analysis_metadata?: Json | null
           analysis_mode?: string | null
+          arxiv_category?: string | null
           arxiv_id: string
           attempts?: number | null
           authors?: Json | null
@@ -644,9 +754,11 @@ export type Database = {
           created_at?: string | null
           error_message?: string | null
           id?: string
+          intended_sector?: string | null
           max_attempts?: number | null
           paper_url?: string | null
           priority?: number | null
+          processing_batch_id?: string | null
           processing_error?: string | null
           processing_stage?: string | null
           processing_time_seconds?: number | null
@@ -657,6 +769,8 @@ export type Database = {
           successful_agents?: number | null
           title?: string | null
           updated_at?: string | null
+          worker_assigned_at?: string | null
+          worker_id?: string | null
           workflow_metadata?: Json | null
         }
         Update: {
@@ -669,6 +783,7 @@ export type Database = {
           agent5_output?: Json | null
           analysis_metadata?: Json | null
           analysis_mode?: string | null
+          arxiv_category?: string | null
           arxiv_id?: string
           attempts?: number | null
           authors?: Json | null
@@ -680,9 +795,11 @@ export type Database = {
           created_at?: string | null
           error_message?: string | null
           id?: string
+          intended_sector?: string | null
           max_attempts?: number | null
           paper_url?: string | null
           priority?: number | null
+          processing_batch_id?: string | null
           processing_error?: string | null
           processing_stage?: string | null
           processing_time_seconds?: number | null
@@ -693,6 +810,8 @@ export type Database = {
           successful_agents?: number | null
           title?: string | null
           updated_at?: string | null
+          worker_assigned_at?: string | null
+          worker_id?: string | null
           workflow_metadata?: Json | null
         }
         Relationships: []
@@ -940,15 +1059,18 @@ export type Database = {
           limitations: Json | null
           market_sector: string | null
           market_sector_id: number | null
+          market_sectors: string[] | null
           market_size_estimate: number | null
           patent_potential: string | null
           pdf_url: string | null
           primary_category: string | null
+          primary_sector: string | null
           processed_at: string | null
           processing_error: string | null
           processing_status: string | null
           publication_date: string | null
           published_date: string | null
+          sector_confidence: Json | null
           subsector: string | null
           summary: string | null
           synthesis_metadata: Json | null
@@ -990,15 +1112,18 @@ export type Database = {
           limitations?: Json | null
           market_sector?: string | null
           market_sector_id?: number | null
+          market_sectors?: string[] | null
           market_size_estimate?: number | null
           patent_potential?: string | null
           pdf_url?: string | null
           primary_category?: string | null
+          primary_sector?: string | null
           processed_at?: string | null
           processing_error?: string | null
           processing_status?: string | null
           publication_date?: string | null
           published_date?: string | null
+          sector_confidence?: Json | null
           subsector?: string | null
           summary?: string | null
           synthesis_metadata?: Json | null
@@ -1040,15 +1165,18 @@ export type Database = {
           limitations?: Json | null
           market_sector?: string | null
           market_sector_id?: number | null
+          market_sectors?: string[] | null
           market_size_estimate?: number | null
           patent_potential?: string | null
           pdf_url?: string | null
           primary_category?: string | null
+          primary_sector?: string | null
           processed_at?: string | null
           processing_error?: string | null
           processing_status?: string | null
           publication_date?: string | null
           published_date?: string | null
+          sector_confidence?: Json | null
           subsector?: string | null
           summary?: string | null
           synthesis_metadata?: Json | null
